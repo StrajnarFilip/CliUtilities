@@ -14,23 +14,29 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+if test $(whoami) != "root"
+then
+    "You must run this script as root. Exiting."
+    exit
+fi
 
-ssh-keygen -t ed25519 -f ~/.ssh/ed25519 -N ""
-public_key="$(cat ~/.ssh/ed25519.pub)"
-echo "
+service_name=$1
+bash_script_path=$2
 
-Copy the line below into ~/.ssh/authorized_keys on target device:"
-echo $public_key
-echo "
+if test ${bash_script_path:0:1} != "/"
+then
+    "The path to bash script needs to be absolute. Exiting."
+    exit
+fi
 
-Alternatively, use this script with bash:"
-echo 'echo "'$public_key'" >> ~/.ssh/authorized_keys'
-echo "
+service_path="/etc/systemd/system/${1}.service"
 
-Or this script with powershell:"
-echo 'Add-Content -Path "~/.ssh/authorized_keys" -Value "'$public_key'"'
-echo "
+echo "[Service]
+ExecStart=bash $bash_script_path
 
-On a Windows machine for Administrator accout:"
-echo 'Set-Content -Path "${env:ProgramData}\ssh\administrators_authorized_keys" -Value "'$public_key'"
-'
+[Install]
+WantedBy=multi-user.target" >> $service_path
+
+systemctl enable $service_name
+systemctl start $service_name
+systemctl status $service_name
